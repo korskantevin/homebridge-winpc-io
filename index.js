@@ -1,5 +1,8 @@
 var Service;
 var Characteristic;
+var os = require( "os" );
+var packagedef = require( './package.json' );
+
 var request = require("request");
 var pollingtoevent = require('polling-to-event');
 var wol = require('wake_on_lan');
@@ -8,7 +11,7 @@ module.exports = function(homebridge)
 {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-winpc", "WinPC", HttpStatusAccessory);
+  homebridge.registerAccessory("WinPC", HttpStatusAccessory);
 }
 
 function HttpStatusAccessory(log, config) 
@@ -28,40 +31,65 @@ function HttpStatusAccessory(log, config)
 	this.password = config["password"] || "";
 	this.sendimmediately = config["sendimmediately"]  || "";
 	this.name = config["name"];
-	this.poll_status_interval = config["poll_status_interval"];
-	this.interval = parseInt( this.poll_status_interval);
-	this.powerstateOnError = config["powerstateOnError"];
-	this.powerstateOnConnect = config["powerstateOnConnect"];
+	this.interval = config["poll_status_interval"];
+	this.wait = config["wait_after_set"];
+	this.powerstateOnError = 0; //config["powerstateOnError"];
+	this.powerstateOnConnect = 1; //config["powerstateOnConnect"];
 	this.info = {
-		serialnumber : "Unknown",
-		model: "Windows PC",
-		manufacterer : "Microsoft",
-		name : "Windows PC",
-		softwareversion : "Unknown"
+		manufacturer    : "Microsoft",
+		model           : "Windows PC",
+		serialNumber    : ( os.hostname() + "-" + this.name ),
+		firmwareRevision: packagedef.version,
+		softwareRevision: "Not provided"
 	};
+	if(config["info"]){
+		if(config["info"]["manufacturer"]){
+			this.info.manufacturer = config["info"]["manufacturer"];
+		}
+		if(config["info"]["model"]){
+			this.info.model = config["info"]["model"];
+		}
+		if(config["info"]["serialNumber"]){
+			this.info.serialNumber = config["info"]["serialNumber"];
+		}
+		if(config["info"]["firmwareRevision"]){
+			this.info.firmwareRevision = config["info"]["firmwareRevision"];
+		}
+		if(config["info"]["softwareRevision"]){
+			this.info.softwareRevision = config["info"]["softwareRevision"];
+		}
+	}
+	//this.log("TEST" , this.info);
+	
 	
 	this.switchHandling = "check";
 	if (this.status_url && this.interval > 10 && this.interval < 100000) {
 		this.switchHandling = "poll";
 	}	
 	this.state = false;
-
+	this.waiting_after_set = false;
 	// Status Polling
 	if (this.switchHandling == "poll") {
-		var powerurl = this.status_url;
+		//var powerurl = this.status_url;
 		
 		var statusemitter = pollingtoevent(function(done) {
-			that.log("start polling..");
-			that.getPowerState( function( error, response) {
-				//pass also the setAttempt, to force a homekit update if needed
-				done(error, response, that.setAttempt);
-			}, "statuspoll");
-		}, {longpolling:true,interval:that.interval * 1000,longpollEventName:"statuspoll"});
-
+			//that.log("start polling..");
+			if(that.waiting_after_set){
+				that.log("no request, using current state: ", that.state);
+			}else{
+				that.getPowerState( function( error, response) {
+					//pass also the setAttempt, to force a homekit update if needed
+					done(error, response, that.setAttempt);
+				}, "statuspoll");
+			}
+		}, {
+			longpolling: true,
+			interval: that.interval * 1000,
+			longpollEventName: "statuspoll"
+		});
 		statusemitter.on("statuspoll", function(data) {
 			that.state = data;
 			that.log("event - status poller - new state: ", that.state);
-
 			if (that.switchService ) {
 				that.switchService.getCharacteristic(Characteristic.On).setValue(that.state, null, "statuspoll");
 			}
@@ -124,35 +152,35 @@ httpRequest: function(url, body, method, username, password, sendimmediately, ca
 },
 
 setPowerState: function(powerState, callback, context) {
-    var url;
-    var body;
+	var url;
+	var body;
 	var that = this;
-
-//if context is statuspoll, then we need to ensure that we do not set the actual value
+	
+	//if context is statuspoll, then we need to ensure that we do not set the actual value
 	if (context && context == "statuspoll") {
 		this.log( "setPowerState - polling mode, ignore, state: %s", this.state);
 		callback(null, powerState);
-	    return;
+		return;
 	}
-    if (!this.on_url || !this.off_url) {
-    	    this.log.warn("Ignoring request; No power url defined.");
-	    callback(new Error("No power url defined."));
-	    return;
-    }
-
+	if (!this.on_url || !this.off_url) {
+		this.log.warn("Ignoring request; No power url defined.");
+		callback(new Error("No power url defined."));
+		return;
+	}
+	
 	this.setAttempt = this.setAttempt+1;
-		
-    if (powerState) {
+	
+	if (powerState) {
 		url = this.on_url;
 		body = this.on_body;
 		this.log("setPowerState - setting power state to on");
-    } else {
+	} else {
 		url = this.off_url;
 		body = this.off_body;
 		this.log("setPowerState - setting power state to off");
-    }
-
-    this.httpRequest(url, body, this.http_method, this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
+	}
+	
+	this.httpRequest(url, body, this.http_method, this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
 		if (error) {
 			that.log('setPowerState - actual mode - failed: %s', error.message);
 			powerState = false;
@@ -165,13 +193,19 @@ setPowerState: function(powerState, callback, context) {
 		} else {
 			that.state = powerState;
 			that.log("setPowerState - actual mode - current state: %s", that.state);
+			if(that.wait > 0){
+				that.waiting_after_set = true;
+				setTimeout(function(){
+					that.waiting_after_set = false;
+				}, that.wait*1000);
+			}
 			callback(null, powerState);
 		}
-    }.bind(this));
+	}.bind(this));
 },
-  
+
 getPowerState: function(callback, context) {
-//if context is statuspoll, then we need to request the actual value
+	//if context is statuspoll, then we need to request the actual value
 	if (!context || context != "statuspoll") {
 		if (this.switchHandling == "poll") {
 			this.log("getPowerState - polling mode, return state: ", this.state);
@@ -180,17 +214,17 @@ getPowerState: function(callback, context) {
 		}
 	}
 	
-    if (!this.status_url) {
-    	this.log.warn("Ignoring request; No status url defined.");
-	    callback(new Error("No status url defined."));
-	    return;
-    }
-    
-    var url = this.status_url;
-    this.log("getPowerState - actual mode");
+	if (!this.status_url) {
+		this.log.warn("Ignoring request; No status url defined.");
+		callback(new Error("No status url defined."));
+		return;
+	}
+	
+	var url = this.status_url;
+	this.log("getPowerState - actual mode");
 	var that = this;
-
-    this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
+	
+	this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
 		var tResp = responseBody;
 		var tError = error;
 		if (tError) {
@@ -217,86 +251,32 @@ getPowerState: function(callback, context) {
 			that.state = powerState;
 			callback(null, powerState);
 		}
-    }.bind(this));
+	}.bind(this));
 },
 
 identify: function(callback) {
-    this.log("Identify requested!");
-    callback(); // success
-},
-
-processInformation: function( info, informationService, firstTime)
-{
-	if (!info)
-		return;
-		
-	var equal = true;
-	
-	var deviceManufacturer = info.manufacturer || "Microsoft";
-	if (deviceManufacturer != this.info.manufacturer) {
-		equal = false;
-		this.info.manufacturer = deviceManufacturer;
-	}
-	
-	var deviceModel = info.model || "Not provided";
-	if (deviceModel == "Not provided" && info.model_encrypted) {
-		deviceModel = "encrypted";
-	}
-	if (deviceModel != this.info.model) {
-		equal = false;
-		this.info.model = deviceModel;
-	}
-	
-	var deviceSerialnumber = info.serialnumber || "Not provided";
-	if (deviceSerialnumber == "Not provided" && info.serialnumber_encrypted) {
-		deviceSerialnumber = "encrypted";
-	}
-	if (deviceSerialnumber != this.info.serialnumber) {
-		equal = false;
-		this.info.serialnumber = deviceSerialnumber;
-	}
-	
-	var deviceName = info.name || "Not provided";
-	if (deviceName != this.info.name) {
-		equal = false;
-		this.info.name = deviceName;
-	}
-	
-	var deviceSoftwareversion = info.softwareversion || "Not provided";
-	if (deviceSoftwareversion == "Not provided" && info.softwareversion_encrypted) {
-		deviceSoftwareversion = "encrypted";
-	}	
-	if (deviceSoftwareversion != this.info.softwareversion) {
-		equal = false;
-		this.info.softwareversion = deviceSoftwareversion;
-	}
-	
-	if( !equal || firstTime) {
-		if (informationService) {
-			this.log('Setting info: '+ JSON.stringify( this.info));
-			informationService
-			.setCharacteristic(Characteristic.Manufacturer, deviceManufacturer)
-			.setCharacteristic(Characteristic.Model, deviceModel)
-			.setCharacteristic(Characteristic.SerialNumber, deviceSerialnumber)
-			.setCharacteristic(Characteristic.Name, deviceName)
-			.setCharacteristic(Characteristic.SoftwareRevision, deviceSoftwareversion );
-		}
-	}
+	this.log("Identify requested!");
+	callback(); // success
 },
 
 getServices: function() {
- 	var that = this;
-
 	var informationService = new Service.AccessoryInformation();
-    this.processInformation( this.info, informationService, true);
-
+	if (this.info){
+		this.log('Setting info: '+ JSON.stringify( this.info));
+		informationService
+		.setCharacteristic(Characteristic.Manufacturer, this.info.manufacturer)
+		.setCharacteristic(Characteristic.Model, this.info.model)
+		.setCharacteristic(Characteristic.SerialNumber, this.info.serialNumber)
+		.setCharacteristic(Characteristic.FirmwareRevision, this.info.firmwareRevision )
+		.setCharacteristic(Characteristic.SoftwareRevision, this.info.softwareRevision );
+	}
+	
 	this.switchService = new Service.Switch(this.name);
-
 	this.switchService
 		.getCharacteristic(Characteristic.On)
 		.on('get', this.getPowerState.bind(this))
 		.on('set', this.setPowerState.bind(this));
-
+	
 	return [informationService, this.switchService];
 }
 };

@@ -14,7 +14,7 @@ Main difference is:
 # Installation
 
 1. Install homebridge using: npm install -g homebridge
-2. Install this plugin using: npm install -g homebridge-philipswinpc
+2. Install this plugin using: npm install -g homebridge-winpc-io
 3. Update your configuration file. See the sample below.
 
 # Configuration
@@ -30,11 +30,10 @@ Example accessory config (needs to be added to the homebridge config.json):
 		"off_url": "http://10.0.1.23:7878/?action=System.Shutdown",
 		"status_url": "http://10.0.1.23:7878/",
 		"sendimmediately": "yes",
-		"poll_status_interval": "60",
+		"poll_status_interval": 60,
+		"wait_after_set": 180,
 		"username" : "User",
-		"password" : "password",
-		"powerstateOnError" : "0",
-		"powerstateOnConnect" : "1"				
+		"password" : "password"
 	}
 ]
  ```
@@ -49,11 +48,10 @@ Or:
 		"off_url": "http://10.0.1.23:7878/?action=System.Shutdown",
 		"status_url": "http://10.0.1.23:7878/",
 		"sendimmediately": "yes",
-		"poll_status_interval": "60",
+		"poll_status_interval": 60,
+		"wait_after_set": "180",
 		"username" : "User",
-		"password" : "password",
-		"powerstateOnError" : "0",
-		"powerstateOnConnect" : "1"				
+		"password" : "password"
 	}
 ]
  ```

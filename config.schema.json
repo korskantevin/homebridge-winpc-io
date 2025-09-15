@@ -1,0 +1,208 @@
+{
+    "pluginAlias": "WinPC",
+    "pluginType": "accessory",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "minLength": 1,
+                "required": true,
+                "title": "Name",
+                "description": "Name of accessory, as displayed in HomeKit."
+            },
+            "on_url": {
+                "type": "string",
+                "required": true,
+                "title": "WOL URL",
+                "description": "WOL URL to turn PC on, example: wol://40:39:51:04:99:c0 or wol://40:39:51:04:99:c0?ip=192.168.1.23"
+            },
+            "status_url": {
+                "type": "string",
+                "required": false,
+                "title": "Airytec Status URL",
+                "description": "URL example http://192.168.1.23:8000/ (optional)"
+            },
+            "off_url": {
+                "type": "string",
+                "required": false,
+                "title": "Airytec Off URL",
+                "description": "URL example http://192.168.1.23:8000/?action=System.Shutdown (optional)"
+            },
+			"http_method": {
+				"type": "string",
+				"required": true,
+				"title": "HTTP method",
+				"description": "Select HTTP method to access Airytec.",
+				"placeholder": "GET",
+				"oneOf": [
+					{
+						"title": "GET",
+						"enum": [
+							"GET"
+						]
+					},
+					{
+						"title": "POST",
+						"enum": [
+							"POST"
+						]
+					}
+				]
+			},
+			"sendimmediately": {
+				"type": "string",
+				"required": false,
+				"title": "Auth sendImmediately",
+				"description": "Auth sendImmediately for Airytec (optional)",
+				"placeholder": "yes",
+				"oneOf": [
+					{
+						"title": "yes",
+						"enum": [
+							"yes"
+						]
+					}
+				]
+			},
+			"username": {
+				"type": "string",
+				"required": false,
+				"title": "Username",
+				"description": "Username for Airytec (optional)"
+			},
+			"password": {
+				"type": "string",
+				"required": false,
+				"title": "Password",
+				"description": "Password for Airytec (optional)"
+			},
+			
+
+            "poll_status_interval": {
+                "type": "integer",
+                "required": true,
+                "title": "Poll status interval",
+                "description": "Poll status interval (seconds), <10 to disable",
+                "placeholder": 60
+            },
+            "wait_after_set": {
+                "type": "integer",
+                "required": true,
+                "title": "Wait after set interval",
+                "description": "After setting the state, don't check state for interval (seconds), 0 to disable",
+                "placeholder": 180
+            },
+			
+			"info": {
+                "type": "object",
+                "title": "Topics",
+                "properties": {
+					"manufacturer": {
+						"type": "string",
+						"title": "Manufacturer",
+						"description": "Default: Microsoft"
+					},
+					"model": {
+						"type": "string",
+						"title": "Model",
+						"description": "default: Windows PC"
+					},
+					"serialNumber": {
+						"type": "string",
+						"title": "Serial Number",
+						"description": "default: hostname and accessory name joined by a dash"
+					},
+					"firmwareRevision": {
+						"type": "string",
+						"title": "Firmware Revision",
+						"description": "default: winpc-io version"
+					},
+					"softwareRevision": {
+						"type": "string",
+						"title": "Software Revision",
+						"description": "default: Not provided",
+						"oneOf": [
+							{
+								"title": "Windows XP",
+								"enum": [
+									"Windows XP"
+								]
+							},
+							{
+								"title": "Windows 10",
+								"enum": [
+									"Windows 10"
+								]
+							},
+							{
+								"title": "Windows 11",
+								"enum": [
+									"Windows 11"
+								]
+							}
+						]
+					}
+				}
+			}
+        }
+    },
+	"layout": [
+        "name",
+		"on_url",
+		{
+          "type": "fieldset",
+          "title": "Airytec URL settings",
+          "description": "Airytec need to be installed on PC. Turning PC off reauired Airytec run as service on PC. <a href='https://www.airytec.com/' target='_blank'>Download Airytec</a>",
+          "items": [
+            "status_url",
+		    "off_url"
+          ]
+        },
+        {
+            "type": "fieldset",
+            "expandable": true,
+            "title": "Optional HTTP options",
+            "items": [
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"http_method",
+						"sendimmediately"
+					]
+				},
+				{
+					"type": "flex",
+					"flex-flow": "row wrap",
+					"items": [
+						"username",
+						{
+							"key": "password",
+							"type": "password"
+						}
+					]
+				}
+            ]
+        },
+        {
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"poll_status_interval",
+				"wait_after_set"
+			]
+		},
+		{
+            "type": "fieldset",
+            "expandable": "true",
+            "title": "Accessory Information",
+            "items": [
+                "info.manufacturer",
+                "info.model",
+                "info.serialNumber",
+                "info.firmwareRevision",
+				"info.softwareRevision"
+            ]
+        }
+	]}
