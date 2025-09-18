@@ -2,6 +2,12 @@
 
 All notable changes to homebridge-winpc-io will be documented in this file.
 
+## v0.4.5 (2025-09-15)
+
+### Fixed
+
+- when polling request geting error but value was already seted. returning seted value instead of error value
+
 ## v0.4.4 (2025-09-15)
 
 ### Added

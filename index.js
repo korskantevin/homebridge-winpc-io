@@ -238,18 +238,24 @@ getPowerState: function(callback, context) {
 			  tError = null;
 			}
 		}
-		if (tError) {
-			that.log('getPowerState - actual mode - failed: %s', error.message);
-			var powerState = false;
-			that.log("getPowerState - actual mode - current state: %s", powerState);
-			that.state = powerState;
-			callback(null, powerState);
-		} else {
-			var binaryState = parseInt(tResp);
-			var powerState = binaryState > 0;
-			that.log("getPowerState - actual mode - current state: %s", powerState);
-			that.state = powerState;
-			callback(null, powerState);
+		
+		if(that.waiting_after_set){
+			that.log("using current state: ", that.state);
+			callback(null, that.state);
+		}else{
+			if (tError) {
+				that.log('getPowerState - actual mode - failed: %s', error.message);
+				var powerState = false;
+				that.log("getPowerState - actual mode - current state: %s", powerState);
+				that.state = powerState;
+				callback(null, powerState);
+			} else {
+				var binaryState = parseInt(tResp);
+				var powerState = binaryState > 0;
+				that.log("getPowerState - actual mode - current state: %s", powerState);
+				that.state = powerState;
+				callback(null, powerState);
+			}
 		}
 	}.bind(this));
 },
