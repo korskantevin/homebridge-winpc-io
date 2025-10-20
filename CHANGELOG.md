@@ -1,5 +1,9 @@
 # Change Log
 
+## v0.4.5 (2025-10-20)
+
+### Added
+
 All notable changes to homebridge-winpc-io will be documented in this file.
 
 ## v0.4.5 (2025-09-15)
