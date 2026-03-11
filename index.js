@@ -7,15 +7,13 @@ var request = require("request");
 var pollingtoevent = require('polling-to-event');
 var wol = require('wake_on_lan');
 
-module.exports = function(homebridge)
-{
-  Service = homebridge.hap.Service;
-  Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("WinPC", HttpStatusAccessory);
+module.exports = function(homebridge) {
+	Service = homebridge.hap.Service;
+	Characteristic = homebridge.hap.Characteristic;
+	homebridge.registerAccessory("WinPC", HttpStatusAccessory);
 }
 
-function HttpStatusAccessory(log, config) 
-{
+function HttpStatusAccessory(log, config) {
 	this.log = log;
 	var that = this;
 	this.setAttempt = 0;
@@ -91,7 +89,8 @@ function HttpStatusAccessory(log, config)
 			that.state = data;
 			that.log("event - status poller - new state: ", that.state);
 			if (that.switchService ) {
-				that.switchService.getCharacteristic(Characteristic.On).setValue(that.state, null, "statuspoll");
+				//that.switchService.getCharacteristic(Characteristic.On).setValue(that.state, null, "statuspoll");
+				that.switchService.getCharacteristic(Characteristic.On).updateValue(that.state, "statuspoll");
 			}
 		});
 	}
@@ -169,7 +168,7 @@ setPowerState: function(powerState, callback, context) {
 		return;
 	}
 	
-	this.setAttempt = this.setAttempt+1;
+	this.setAttempt++;
 	
 	if (powerState) {
 		url = this.on_url;
@@ -188,7 +187,8 @@ setPowerState: function(powerState, callback, context) {
 			that.state = powerState;
 			that.log("setPowerState - actual mode - current state: %s", that.state);
 			if (that.switchService ) {
-				that.switchService.getCharacteristic(Characteristic.On).setValue(powerState, null, "statuspoll");
+				//that.switchService.getCharacteristic(Characteristic.On).setValue(powerState, null, "statuspoll");
+				that.switchService.getCharacteristic(Characteristic.On).updateValue(powerState, "statuspoll");
 			}	
 			//callback(null, powerState);
 			callback(null);
@@ -223,11 +223,10 @@ getPowerState: function(callback, context) {
 		return;
 	}
 	
-	var url = this.status_url;
 	this.log("getPowerState - actual mode");
 	var that = this;
 	
-	this.httpRequest(url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
+	this.httpRequest(this.status_url, "", "GET", this.username, this.password, this.sendimmediately, function(error, response, responseBody) {
 		var tResp = responseBody;
 		var tError = error;
 		if (tError) {
@@ -251,15 +250,13 @@ getPowerState: function(callback, context) {
 				var powerState = false;
 				that.log("getPowerState - actual mode - current state: %s", powerState);
 				that.state = powerState;
-				//callback(null, powerState);
-				callback(null);
+				callback(null, powerState);
 			} else {
 				var binaryState = parseInt(tResp);
 				var powerState = binaryState > 0;
 				that.log("getPowerState - actual mode - current state: %s", powerState);
 				that.state = powerState;
-				//callback(null, powerState);
-				callback(null);
+				callback(null, powerState);
 			}
 		}
 	}.bind(this));

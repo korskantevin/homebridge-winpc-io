@@ -7,6 +7,12 @@ All notable changes to homebridge-winpc-io will be documented in this file
 - Change plugin from Accessory Plugin to Dynamic Platform Plugin using homebridge-plugin-template. This step is need to get Verified Plugin status.
 - Check HomeBridge v2.0 compatability and made plugin Release.
 
+## [0.4.8] - 2026-03-11
+
+### Fixed
+
+- getPowerState from polling
+
 ## [0.4.7] - 2026-03-11
 
 ### Fixed
