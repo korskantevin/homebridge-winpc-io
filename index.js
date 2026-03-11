@@ -159,7 +159,8 @@ setPowerState: function(powerState, callback, context) {
 	//if context is statuspoll, then we need to ensure that we do not set the actual value
 	if (context && context == "statuspoll") {
 		this.log( "setPowerState - polling mode, ignore, state: %s", this.state);
-		callback(null, powerState);
+		//callback(null, powerState);
+		callback(null);
 		return;
 	}
 	if (!this.on_url || !this.off_url) {
@@ -189,7 +190,8 @@ setPowerState: function(powerState, callback, context) {
 			if (that.switchService ) {
 				that.switchService.getCharacteristic(Characteristic.On).setValue(powerState, null, "statuspoll");
 			}	
-			callback(null, powerState);
+			//callback(null, powerState);
+			callback(null);
 		} else {
 			that.state = powerState;
 			that.log("setPowerState - actual mode - current state: %s", that.state);
@@ -199,7 +201,8 @@ setPowerState: function(powerState, callback, context) {
 					that.waiting_after_set = false;
 				}, that.wait*1000);
 			}
-			callback(null, powerState);
+			//callback(null, powerState);
+			callback(null);
 		}
 	}.bind(this));
 },
@@ -248,13 +251,15 @@ getPowerState: function(callback, context) {
 				var powerState = false;
 				that.log("getPowerState - actual mode - current state: %s", powerState);
 				that.state = powerState;
-				callback(null, powerState);
+				//callback(null, powerState);
+				callback(null);
 			} else {
 				var binaryState = parseInt(tResp);
 				var powerState = binaryState > 0;
 				that.log("getPowerState - actual mode - current state: %s", powerState);
 				that.state = powerState;
-				callback(null, powerState);
+				//callback(null, powerState);
+				callback(null);
 			}
 		}
 	}.bind(this));
